@@ -1,19 +1,20 @@
-name = "example"
+name = "uss"
 
 namespace "storage" {
-  implement = ["dir_lister"]
+  implement = ["dir_lister", "prefix_lister"]
 
   new {
+    required = ["credential", "name"]
     optional = ["work_dir"]
   }
 
   op "list_dir" {
     optional = ["dir_func", "file_func"]
   }
-  op "read" {
-    optional = ["offset", "size"]
+  op "list_prefix" {
+    required = ["object_func"]
   }
   op "write" {
-    optional = ["size"]
+    required = ["size"]
   }
 }

@@ -1,6 +1,6 @@
 /*
-Package example provided support for local file system.
+Package uss provided support for UPYUN Storage Service (https://www.upyun.com/products/file-storage)
 */
-package example
+package uss
 
 //go:generate definitions service.hcl
