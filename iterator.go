@@ -1,21 +1,11 @@
 package uss
 
 type objectPageStatus struct {
-	delimiter string
-	limit     int
-	prefix    string
-	marker    string
+	limit  string // limit passed in header as a string
+	prefix string
+	iter   string
 }
 
 func (i *objectPageStatus) ContinuationToken() string {
-	return i.marker
-}
-
-type storagePageStatus struct {
-	marker string
-	limit  int
-}
-
-func (i *storagePageStatus) ContinuationToken() string {
-	return i.marker
+	return i.iter
 }

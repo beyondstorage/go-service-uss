@@ -126,18 +126,21 @@ func (s *Storage) formatError(op string, err error, path ...string) error {
 	}
 }
 
-func (s *Storage) formatFileObject(v *upyun.FileInfo) (o *typ.Object, err error) {
-	o = s.newObject(false)
+func (s *Storage) formatFileObject(v *upyun.FileInfo, stated bool) (o *typ.Object, err error) {
+	o = s.newObject(stated)
 	o.ID = v.Name
 	o.Path = s.getRelPath(v.Name)
 	o.Mode |= typ.ModeRead
 
 	o.SetContentLength(v.Size)
 	o.SetLastModified(v.Time)
-	o.SetServiceMetadata(v.Meta)
+	// v.Meta means all the k-v in header with key which has prefix `x-upyun-meta-`
+	// so we consider it as user's metadata
+	// see more details at: https://github.com/upyun/go-sdk/blob/master/upyun/fileinfo.go#L39
+	o.SetUserMetadata(v.Meta)
 
 	if v.MD5 != "" {
-		o.SetEtag(v.MD5)
+		o.SetContentMd5(v.MD5)
 	}
 	if v.ContentType != "" {
 		o.SetContentType(v.ContentType)
@@ -146,6 +149,6 @@ func (s *Storage) formatFileObject(v *upyun.FileInfo) (o *typ.Object, err error)
 	return o, nil
 }
 
-func (s *Storage) newObject(done bool) *typ.Object {
-	return typ.NewObject(s, done)
+func (s *Storage) newObject(stated bool) *typ.Object {
+	return typ.NewObject(s, stated)
 }
