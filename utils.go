@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aos-dev/go-storage/v2/types/info"
-	"github.com/upyun/go-sdk/upyun"
+	"github.com/upyun/go-sdk/v3/upyun"
 
-	"github.com/aos-dev/go-storage/v2"
-	"github.com/aos-dev/go-storage/v2/pkg/credential"
-	"github.com/aos-dev/go-storage/v2/pkg/httpclient"
-	"github.com/aos-dev/go-storage/v2/services"
-	"github.com/aos-dev/go-storage/v2/types"
-	ps "github.com/aos-dev/go-storage/v2/types/pairs"
+	ps "github.com/aos-dev/go-storage/v3/pairs"
+	"github.com/aos-dev/go-storage/v3/pkg/credential"
+	"github.com/aos-dev/go-storage/v3/pkg/httpclient"
+	"github.com/aos-dev/go-storage/v3/services"
+	typ "github.com/aos-dev/go-storage/v3/types"
 )
 
 // Storage is the uss service.
@@ -21,6 +19,8 @@ type Storage struct {
 
 	name    string
 	workDir string
+
+	pairPolicy typ.PairPolicy
 }
 
 // String implements Storager.String
@@ -30,14 +30,14 @@ func (s *Storage) String() string {
 }
 
 // NewStorager will create Storager only.
-func NewStorager(pairs ...*types.Pair) (storage.Storager, error) {
+func NewStorager(pairs ...typ.Pair) (typ.Storager, error) {
 	return newStorager(pairs...)
 }
 
-func newStorager(pairs ...*types.Pair) (store *Storage, err error) {
+func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 	defer func() {
 		if err != nil {
-			err = &services.InitError{Op: services.OpNewStorager, Type: Type, Err: err, Pairs: pairs}
+			err = &services.InitError{Op: "new_storager", Type: Type, Err: err, Pairs: pairs}
 		}
 	}()
 
@@ -48,15 +48,19 @@ func newStorager(pairs ...*types.Pair) (store *Storage, err error) {
 		return
 	}
 
-	credProtocol, cred := opt.Credential.Protocol(), opt.Credential.Value()
-	if credProtocol != credential.ProtocolHmac {
+	cp, err := credential.Parse(opt.Credential)
+	if err != nil {
+		return nil, err
+	}
+	if cp.Protocol() != credential.ProtocolHmac {
 		return nil, services.NewPairUnsupportedError(ps.WithCredential(opt.Credential))
 	}
 
+	operator, password := cp.Hmac()
 	cfg := &upyun.UpYunConfig{
 		Bucket:   opt.Name,
-		Operator: cred[0],
-		Password: cred[1],
+		Operator: operator,
+		Password: password,
 	}
 	store.bucket = upyun.NewUpYun(cfg)
 	// Set http client
@@ -122,22 +126,29 @@ func (s *Storage) formatError(op string, err error, path ...string) error {
 	}
 }
 
-func (s *Storage) formatFileObject(v *upyun.FileInfo) (o *types.Object, err error) {
-	o = &types.Object{
-		ID:         v.Name,
-		Name:       s.getRelPath(v.Name),
-		Type:       types.ObjectTypeFile,
-		Size:       v.Size,
-		UpdatedAt:  v.Time,
-		ObjectMeta: info.NewObjectMeta(),
-	}
+func (s *Storage) formatFileObject(v *upyun.FileInfo) (o *typ.Object, err error) {
+	o = s.newObject(true)
+	o.ID = v.Name
+	o.Path = s.getRelPath(v.Name)
+	o.Mode |= typ.ModeRead
 
-	if v.ETag != "" {
-		o.SetETag(v.ETag)
+	o.SetContentLength(v.Size)
+	o.SetLastModified(v.Time)
+	// v.Meta means all the k-v in header with key which has prefix `x-upyun-meta-`
+	// so we consider it as user's metadata
+	// see more details at: https://github.com/upyun/go-sdk/blob/master/upyun/fileinfo.go#L39
+	o.SetUserMetadata(v.Meta)
+
+	if v.MD5 != "" {
+		o.SetContentMd5(v.MD5)
 	}
 	if v.ContentType != "" {
 		o.SetContentType(v.ContentType)
 	}
 
 	return o, nil
+}
+
+func (s *Storage) newObject(stated bool) *typ.Object {
+	return typ.NewObject(s, stated)
 }
