@@ -126,8 +126,8 @@ func (s *Storage) formatError(op string, err error, path ...string) error {
 	}
 }
 
-func (s *Storage) formatFileObject(v *upyun.FileInfo, stated bool) (o *typ.Object, err error) {
-	o = s.newObject(stated)
+func (s *Storage) formatFileObject(v *upyun.FileInfo) (o *typ.Object, err error) {
+	o = s.newObject(true)
 	o.ID = v.Name
 	o.Path = s.getRelPath(v.Name)
 	o.Mode |= typ.ModeRead

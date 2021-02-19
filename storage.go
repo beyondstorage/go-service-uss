@@ -114,7 +114,7 @@ func (s *Storage) nextObjectPageByDir(ctx context.Context, page *ObjectPage) (er
 			continue
 		}
 
-		o, err := s.formatFileObject(v, false)
+		o, err := s.formatFileObject(v)
 		if err != nil {
 			return err
 		}
@@ -161,7 +161,7 @@ func (s *Storage) nextObjectPageByPrefix(ctx context.Context, page *ObjectPage) 
 			continue
 		}
 
-		o, err := s.formatFileObject(v, false)
+		o, err := s.formatFileObject(v)
 		if err != nil {
 			return err
 		}
@@ -206,7 +206,7 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 		return nil, err
 	}
 
-	return s.formatFileObject(output, true)
+	return s.formatFileObject(output)
 }
 
 func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int64, opt pairStorageWrite) (n int64, err error) {
