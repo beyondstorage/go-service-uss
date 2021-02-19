@@ -15,12 +15,13 @@ import (
 )
 
 const (
-	// iterEnd indicates the last page of list
-	// more detail at: http://docs.upyun.com/api/rest_api/#_13
-	iterEnd = "g2gCZAAEbmV4dGQAA2VvZg"
-
+	// headerListIter indicates the start marker of page in header
+	// headerListLimit indicates the size of page in response
 	headerListIter  = "X-List-Iter"
 	headerListLimit = "X-List-Limit"
+	// iterEnd is Base64 code which indicates the last page of list
+	// more detail at: https://docs.upyun.com/api/rest_api/#_13
+	iterEnd = "g2gCZAAEbmV4dGQAA2VvZg"
 )
 
 // delete implements Storager.Delete

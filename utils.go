@@ -56,11 +56,11 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 		return nil, services.NewPairUnsupportedError(ps.WithCredential(opt.Credential))
 	}
 
-	cred := cp.Value()
+	operator, password := cp.Hmac()
 	cfg := &upyun.UpYunConfig{
 		Bucket:   opt.Name,
-		Operator: cred[0],
-		Password: cred[1],
+		Operator: operator,
+		Password: password,
 	}
 	store.bucket = upyun.NewUpYun(cfg)
 	// Set http client
