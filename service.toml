@@ -2,7 +2,7 @@ name = "uss"
 
 [namespace.storage.new]
 required = ["name", "credential"]
-optional = ["work_dir", "http_client_options", "pair_policy"]
+optional = ["default_storage_pairs", "pair_policy", "work_dir", "http_client_options"]
 
 [namespace.storage.op.list]
 optional = ["list_mode", "continuation_token"]
@@ -12,3 +12,7 @@ optional = ["offset", "io_callback", "size"]
 
 [namespace.storage.op.write]
 optional = ["content_md5", "content_type", "io_callback"]
+
+[pairs.default_storage_pairs]
+type = "DefaultStoragePairs"
+description = "set default pairs for storager actions"

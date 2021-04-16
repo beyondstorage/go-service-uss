@@ -24,6 +24,14 @@ const (
 	iterEnd = "g2gCZAAEbmV4dGQAA2VvZg"
 )
 
+func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
+	o = s.newObject(false)
+	o.Mode = ModeRead
+	o.ID = s.getAbsPath(path)
+	o.Path = path
+	return o
+}
+
 // delete implements Storager.Delete
 //
 // USS requires a short time between PUT and DELETE, or we will get this error:
