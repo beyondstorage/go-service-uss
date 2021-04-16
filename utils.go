@@ -20,7 +20,8 @@ type Storage struct {
 	name    string
 	workDir string
 
-	pairPolicy typ.PairPolicy
+	defaultPairs DefaultStoragePairs
+	pairPolicy   typ.PairPolicy
 }
 
 // String implements Storager.String
@@ -67,6 +68,14 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 	store.bucket.SetHTTPClient(httpclient.New(opt.HTTPClientOptions))
 	store.name = opt.Name
 	store.workDir = "/"
+
+	if opt.HasDefaultStoragePairs {
+		store.defaultPairs = opt.DefaultStoragePairs
+	}
+	if opt.HasPairPolicy {
+		store.pairPolicy = opt.PairPolicy
+	}
+
 	if opt.HasWorkDir {
 		store.workDir = opt.WorkDir
 	}
