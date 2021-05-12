@@ -40,7 +40,7 @@ func NewStorager(pairs ...typ.Pair) (typ.Storager, error) {
 func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 	defer func() {
 		if err != nil {
-			err = &services.InitError{Op: "new_storager", Type: Type, Err: err, Pairs: pairs}
+			err = services.InitError{Op: "new_storager", Type: Type, Err: formatError(err), Pairs: pairs}
 		}
 	}()
 
@@ -56,7 +56,7 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 		return nil, err
 	}
 	if cp.Protocol() != credential.ProtocolHmac {
-		return nil, services.NewPairUnsupportedError(ps.WithCredential(opt.Credential))
+		return nil, services.PairUnsupportedError{Pair: ps.WithCredential(opt.Credential)}
 	}
 
 	operator, password := cp.Hmac()
@@ -86,6 +86,10 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 
 // ref: https://help.upyun.com/knowledge-base/errno/
 func formatError(err error) error {
+	if _, ok := err.(services.AosError); ok {
+		return err
+	}
+
 	fn := func(s string) bool {
 		return strings.Contains(err.Error(), `"code": `+s)
 	}
@@ -97,7 +101,7 @@ func formatError(err error) error {
 		case strings.Contains(err.Error(), "404"):
 			return fmt.Errorf("%w: %v", services.ErrObjectNotExist, err)
 		default:
-			return err
+			return fmt.Errorf("%w, %v", services.ErrUnexpected, err)
 		}
 	case fn("40400001"):
 		// 40400001:	file or directory not found
@@ -108,7 +112,7 @@ func formatError(err error) error {
 		// 40300011: has no permission to delete
 		return fmt.Errorf("%w: %v", services.ErrPermissionDenied, err)
 	default:
-		return err
+		return fmt.Errorf("%w, %v", services.ErrUnexpected, err)
 	}
 }
 
@@ -129,7 +133,7 @@ func (s *Storage) formatError(op string, err error, path ...string) error {
 		return nil
 	}
 
-	return &services.StorageError{
+	return services.StorageError{
 		Op:       op,
 		Err:      formatError(err),
 		Storager: s,
