@@ -8,10 +8,10 @@ import (
 
 	"github.com/upyun/go-sdk/v3/upyun"
 
-	"github.com/aos-dev/go-storage/v3/pkg/headers"
-	"github.com/aos-dev/go-storage/v3/pkg/iowrap"
-	"github.com/aos-dev/go-storage/v3/services"
-	. "github.com/aos-dev/go-storage/v3/types"
+	"github.com/beyondstorage/go-storage/v4/pkg/headers"
+	"github.com/beyondstorage/go-storage/v4/pkg/iowrap"
+	"github.com/beyondstorage/go-storage/v4/services"
+	. "github.com/beyondstorage/go-storage/v4/types"
 )
 
 const (
@@ -75,11 +75,11 @@ func (s *Storage) list(ctx context.Context, path string, opt pairStorageList) (o
 	return NewObjectIterator(ctx, nextFn, input), nil
 }
 
-func (s *Storage) metadata(ctx context.Context, opt pairStorageMetadata) (meta *StorageMeta, err error) {
+func (s *Storage) metadata(opt pairStorageMetadata) (meta *StorageMeta) {
 	meta = NewStorageMeta()
 	meta.Name = s.name
 	meta.WorkDir = s.workDir
-	return meta, nil
+	return meta
 }
 
 func (s *Storage) nextObjectPageByDir(ctx context.Context, page *ObjectPage) (err error) {

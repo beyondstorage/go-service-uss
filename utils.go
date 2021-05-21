@@ -6,11 +6,11 @@ import (
 
 	"github.com/upyun/go-sdk/v3/upyun"
 
-	ps "github.com/aos-dev/go-storage/v3/pairs"
-	"github.com/aos-dev/go-storage/v3/pkg/credential"
-	"github.com/aos-dev/go-storage/v3/pkg/httpclient"
-	"github.com/aos-dev/go-storage/v3/services"
-	typ "github.com/aos-dev/go-storage/v3/types"
+	ps "github.com/beyondstorage/go-storage/v4/pairs"
+	"github.com/beyondstorage/go-storage/v4/pkg/credential"
+	"github.com/beyondstorage/go-storage/v4/pkg/httpclient"
+	"github.com/beyondstorage/go-storage/v4/services"
+	typ "github.com/beyondstorage/go-storage/v4/types"
 )
 
 // Storage is the uss service.
@@ -86,7 +86,7 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 
 // ref: https://help.upyun.com/knowledge-base/errno/
 func formatError(err error) error {
-	if _, ok := err.(services.AosError); ok {
+	if _, ok := err.(services.InternalError); ok {
 		return err
 	}
 
