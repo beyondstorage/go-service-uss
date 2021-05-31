@@ -25,6 +25,8 @@ const Type = "uss"
 const (
 	// DefaultStoragePairs set default pairs for storager actions
 	pairDefaultStoragePairs = "uss_default_storage_pairs"
+	// StorageFeatures set storage features
+	pairStorageFeatures = "uss_storage_features"
 )
 
 // ObjectMetadata stores service metadata for object.
@@ -60,9 +62,40 @@ func WithDefaultStoragePairs(v DefaultStoragePairs) Pair {
 	}
 }
 
+// WithStorageFeatures will apply storage_features value to Options.
+//
+// StorageFeatures set storage features
+func WithStorageFeatures(v StorageFeatures) Pair {
+	return Pair{
+		Key:   pairStorageFeatures,
+		Value: v,
+	}
+}
+
 var (
 	_ Storager = &Storage{}
 )
+
+type StorageFeatures struct {
+	LooseOperationAll      bool
+	LooseOperationCreate   bool
+	LooseOperationDelete   bool
+	LooseOperationList     bool
+	LooseOperationMetadata bool
+	LooseOperationRead     bool
+	LooseOperationStat     bool
+	LooseOperationWrite    bool
+
+	VirtualOperationAll bool
+
+	VirtualPairAll              bool
+	VirtualPairReadAll          bool
+	VirtualPairReadOffset       bool
+	VirtualPairReadSize         bool
+	VirtualPairWriteAll         bool
+	VirtualPairWriteContentMd5  bool
+	VirtualPairWriteContentType bool
+}
 
 // pairStorageNew is the parsed struct
 type pairStorageNew struct {
@@ -78,11 +111,10 @@ type pairStorageNew struct {
 	DefaultStoragePairs    DefaultStoragePairs
 	HasHTTPClientOptions   bool
 	HTTPClientOptions      *httpclient.Options
-	HasPairPolicy          bool
-	PairPolicy             PairPolicy
+	HasStorageFeatures     bool
+	StorageFeatures        StorageFeatures
 	HasWorkDir             bool
 	WorkDir                string
-	// Generated pairs
 }
 
 // parsePairStorageNew will parse Pair slice into *pairStorageNew
@@ -119,19 +151,18 @@ func parsePairStorageNew(opts []Pair) (pairStorageNew, error) {
 			}
 			result.HasHTTPClientOptions = true
 			result.HTTPClientOptions = v.Value.(*httpclient.Options)
-		case "pair_policy":
-			if result.HasPairPolicy {
+		case pairStorageFeatures:
+			if result.HasStorageFeatures {
 				continue
 			}
-			result.HasPairPolicy = true
-			result.PairPolicy = v.Value.(PairPolicy)
+			result.HasStorageFeatures = true
+			result.StorageFeatures = v.Value.(StorageFeatures)
 		case "work_dir":
 			if result.HasWorkDir {
 				continue
 			}
 			result.HasWorkDir = true
 			result.WorkDir = v.Value.(string)
-			// Generated pairs
 		}
 	}
 	if !result.HasCredential {
@@ -158,10 +189,6 @@ type DefaultStoragePairs struct {
 // pairStorageCreate is the parsed struct
 type pairStorageCreate struct {
 	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
-	// Generated pairs
 }
 
 // parsePairStorageCreate will parse Pair slice into *pairStorageCreate
@@ -171,18 +198,26 @@ func (s *Storage) parsePairStorageCreate(opts []Pair) (pairStorageCreate, error)
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
-		// Generated pairs
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Create {
-				return pairStorageCreate{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationCreate {
+			continue
+		}
+		return pairStorageCreate{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
@@ -190,10 +225,6 @@ func (s *Storage) parsePairStorageCreate(opts []Pair) (pairStorageCreate, error)
 // pairStorageDelete is the parsed struct
 type pairStorageDelete struct {
 	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
-	// Generated pairs
 }
 
 // parsePairStorageDelete will parse Pair slice into *pairStorageDelete
@@ -203,33 +234,37 @@ func (s *Storage) parsePairStorageDelete(opts []Pair) (pairStorageDelete, error)
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
-		// Generated pairs
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Delete {
-				return pairStorageDelete{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationDelete {
+			continue
+		}
+		return pairStorageDelete{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
 
 // pairStorageList is the parsed struct
 type pairStorageList struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
+	pairs                []Pair
 	HasContinuationToken bool
 	ContinuationToken    string
 	HasListMode          bool
 	ListMode             ListMode
-	// Generated pairs
 }
 
 // parsePairStorageList will parse Pair slice into *pairStorageList
@@ -239,24 +274,40 @@ func (s *Storage) parsePairStorageList(opts []Pair) (pairStorageList, error) {
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
 		case "continuation_token":
+			if result.HasContinuationToken {
+				continue
+			}
 			result.HasContinuationToken = true
 			result.ContinuationToken = v.Value.(string)
+			continue
 		case "list_mode":
+			if result.HasListMode {
+				continue
+			}
 			result.HasListMode = true
 			result.ListMode = v.Value.(ListMode)
-		// Generated pairs
+			continue
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.List {
-				return pairStorageList{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationList {
+			continue
+		}
+		return pairStorageList{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
@@ -264,10 +315,6 @@ func (s *Storage) parsePairStorageList(opts []Pair) (pairStorageList, error) {
 // pairStorageMetadata is the parsed struct
 type pairStorageMetadata struct {
 	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
-	// Generated pairs
 }
 
 // parsePairStorageMetadata will parse Pair slice into *pairStorageMetadata
@@ -277,35 +324,39 @@ func (s *Storage) parsePairStorageMetadata(opts []Pair) (pairStorageMetadata, er
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
-		// Generated pairs
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Metadata {
-				return pairStorageMetadata{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationMetadata {
+			continue
+		}
+		return pairStorageMetadata{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
 
 // pairStorageRead is the parsed struct
 type pairStorageRead struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
+	pairs         []Pair
 	HasIoCallback bool
 	IoCallback    func([]byte)
 	HasOffset     bool
 	Offset        int64
 	HasSize       bool
 	Size          int64
-	// Generated pairs
 }
 
 // parsePairStorageRead will parse Pair slice into *pairStorageRead
@@ -315,27 +366,55 @@ func (s *Storage) parsePairStorageRead(opts []Pair) (pairStorageRead, error) {
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
 		case "io_callback":
+			if result.HasIoCallback {
+				continue
+			}
 			result.HasIoCallback = true
 			result.IoCallback = v.Value.(func([]byte))
+			continue
 		case "offset":
-			result.HasOffset = true
-			result.Offset = v.Value.(int64)
-		case "size":
-			result.HasSize = true
-			result.Size = v.Value.(int64)
-		// Generated pairs
-		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Read {
-				return pairStorageRead{}, services.PairUnsupportedError{Pair: v}
+			if result.HasOffset {
+				continue
 			}
-
+			// If user enables the virtual pair feature, we can pass the virtual pair into it.
+			if s.features.VirtualPairAll || s.features.VirtualPairReadAll || s.features.VirtualPairReadOffset {
+				result.HasOffset = true
+				result.Offset = v.Value.(int64)
+				continue
+			}
+			isUnsupportedPair = true
+		case "size":
+			if result.HasSize {
+				continue
+			}
+			// If user enables the virtual pair feature, we can pass the virtual pair into it.
+			if s.features.VirtualPairAll || s.features.VirtualPairReadAll || s.features.VirtualPairReadSize {
+				result.HasSize = true
+				result.Size = v.Value.(int64)
+				continue
+			}
+			isUnsupportedPair = true
+		default:
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationRead {
+			continue
+		}
+		return pairStorageRead{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
@@ -343,10 +422,6 @@ func (s *Storage) parsePairStorageRead(opts []Pair) (pairStorageRead, error) {
 // pairStorageStat is the parsed struct
 type pairStorageStat struct {
 	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
-	// Generated pairs
 }
 
 // parsePairStorageStat will parse Pair slice into *pairStorageStat
@@ -356,35 +431,39 @@ func (s *Storage) parsePairStorageStat(opts []Pair) (pairStorageStat, error) {
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
-		// Generated pairs
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Stat {
-				return pairStorageStat{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationStat {
+			continue
+		}
+		return pairStorageStat{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
 
 // pairStorageWrite is the parsed struct
 type pairStorageWrite struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
+	pairs          []Pair
+	HasIoCallback  bool
+	IoCallback     func([]byte)
 	HasContentMd5  bool
 	ContentMd5     string
 	HasContentType bool
 	ContentType    string
-	HasIoCallback  bool
-	IoCallback     func([]byte)
-	// Generated pairs
 }
 
 // parsePairStorageWrite will parse Pair slice into *pairStorageWrite
@@ -394,27 +473,55 @@ func (s *Storage) parsePairStorageWrite(opts []Pair) (pairStorageWrite, error) {
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
-		case "content_md5":
-			result.HasContentMd5 = true
-			result.ContentMd5 = v.Value.(string)
-		case "content_type":
-			result.HasContentType = true
-			result.ContentType = v.Value.(string)
 		case "io_callback":
+			if result.HasIoCallback {
+				continue
+			}
 			result.HasIoCallback = true
 			result.IoCallback = v.Value.(func([]byte))
-		// Generated pairs
-		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Write {
-				return pairStorageWrite{}, services.PairUnsupportedError{Pair: v}
+			continue
+		case "content_md5":
+			if result.HasContentMd5 {
+				continue
 			}
-
+			// If user enables the virtual pair feature, we can pass the virtual pair into it.
+			if s.features.VirtualPairAll || s.features.VirtualPairWriteAll || s.features.VirtualPairWriteContentMd5 {
+				result.HasContentMd5 = true
+				result.ContentMd5 = v.Value.(string)
+				continue
+			}
+			isUnsupportedPair = true
+		case "content_type":
+			if result.HasContentType {
+				continue
+			}
+			// If user enables the virtual pair feature, we can pass the virtual pair into it.
+			if s.features.VirtualPairAll || s.features.VirtualPairWriteAll || s.features.VirtualPairWriteContentType {
+				result.HasContentType = true
+				result.ContentType = v.Value.(string)
+				continue
+			}
+			isUnsupportedPair = true
+		default:
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationWrite {
+			continue
+		}
+		return pairStorageWrite{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
