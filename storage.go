@@ -25,11 +25,36 @@ const (
 )
 
 func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
-	o = s.newObject(false)
-	o.Mode = ModeRead
+	if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+		o = s.newObject(true)
+		o.Mode = ModeDir
+	} else {
+		o = s.newObject(false)
+		o.Mode = ModeRead
+	}
+
 	o.ID = s.getAbsPath(path)
 	o.Path = path
 	return o
+}
+
+func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCreateDir) (o *Object, err error) {
+	rp := s.getAbsPath(path)
+
+	err = s.bucket.Mkdir(rp)
+	if err != nil && checkErrorCode(err, 40600002) {
+		// Omit `folder already exists` error here.
+		err = nil
+	}
+	if err != nil {
+		return
+	}
+
+	o = s.newObject(true)
+	o.Mode = ModeDir
+	o.ID = rp
+	o.Path = path
+	return o, nil
 }
 
 // delete implements Storager.Delete
@@ -41,9 +66,20 @@ func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
 func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete) (err error) {
 	rp := s.getAbsPath(path)
 
-	err = s.bucket.Delete(&upyun.DeleteObjectConfig{
+	config := &upyun.DeleteObjectConfig{
 		Path: rp,
-	})
+	}
+
+	if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+		config.Folder = true
+	}
+
+	err = s.bucket.Delete(config)
+	if err != nil && checkErrorCode(err, 40400001) {
+		// Omit `file or directory not found` error here.
+		// ref: [GSP-46](https://github.com/beyondstorage/specs/blob/master/rfcs/46-idempotent-delete.md)
+		err = nil
+	}
 	if err != nil {
 		return err
 	}

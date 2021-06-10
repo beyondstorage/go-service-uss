@@ -24,6 +24,7 @@ type Storage struct {
 	features     StorageFeatures
 
 	typ.UnimplementedStorager
+	typ.UnimplementedDirer
 }
 
 // String implements Storager.String
@@ -145,7 +146,6 @@ func (s *Storage) formatFileObject(v *upyun.FileInfo) (o *typ.Object, err error)
 	o = s.newObject(true)
 	o.ID = v.Name
 	o.Path = s.getRelPath(v.Name)
-	o.Mode |= typ.ModeRead
 
 	o.SetContentLength(v.Size)
 	o.SetLastModified(v.Time)
@@ -160,10 +160,23 @@ func (s *Storage) formatFileObject(v *upyun.FileInfo) (o *typ.Object, err error)
 	if v.ContentType != "" {
 		o.SetContentType(v.ContentType)
 	}
+	if v.IsDir {
+		o.Mode |= typ.ModeDir
+	} else {
+		o.Mode |= typ.ModeRead
+	}
 
 	return o, nil
 }
 
 func (s *Storage) newObject(stated bool) *typ.Object {
 	return typ.NewObject(s, stated)
+}
+
+func checkErrorCode(err error, code int) bool {
+	if ae, ok := err.(*upyun.Error); ok {
+		return ae.Code == code
+	}
+
+	return false
 }
