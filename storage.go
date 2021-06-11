@@ -42,7 +42,7 @@ func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCre
 	rp := s.getAbsPath(path)
 
 	err = s.bucket.Mkdir(rp)
-	if err != nil && checkErrorCode(err, 40600002) {
+	if err != nil && checkErrorCode(err, responseCodeFolderAlreadyExist) {
 		// Omit `folder already exists` error here.
 		err = nil
 	}
@@ -75,7 +75,7 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 	}
 
 	err = s.bucket.Delete(config)
-	if err != nil && checkErrorCode(err, 40400001) {
+	if err != nil && checkErrorCode(err, responseCodeFileOrDirectoryNotFound) {
 		// Omit `file or directory not found` error here.
 		// ref: [GSP-46](https://github.com/beyondstorage/specs/blob/master/rfcs/46-idempotent-delete.md)
 		err = nil

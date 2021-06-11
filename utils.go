@@ -2,6 +2,7 @@ package uss
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/upyun/go-sdk/v3/upyun"
@@ -104,10 +105,10 @@ func formatError(err error) error {
 		default:
 			return fmt.Errorf("%w, %v", services.ErrUnexpected, err)
 		}
-	case fn("40400001"):
+	case fn(strconv.Itoa(responseCodeFileOrDirectoryNotFound)):
 		// 40400001:	file or directory not found
 		return fmt.Errorf("%w: %v", services.ErrObjectNotExist, err)
-	case fn("40100017"), fn("40100019"), fn("40300011"):
+	case fn(strconv.Itoa(responseCodeUserNeedPermission)), fn(strconv.Itoa(responseCodeAccountForbidden)), fn(strconv.Itoa(responseCodeHasNoPermissionToDelete)):
 		// 40100017: user need permission
 		// 40100019: account forbidden
 		// 40300011: has no permission to delete
@@ -172,6 +173,22 @@ func (s *Storage) formatFileObject(v *upyun.FileInfo) (o *typ.Object, err error)
 func (s *Storage) newObject(stated bool) *typ.Object {
 	return typ.NewObject(s, stated)
 }
+
+// uss service response error code
+//
+// ref: http://docs.upyun.com/api/errno/
+const (
+	// responseCodeFileOrDirectoryNotFound file or directory not found
+	responseCodeFileOrDirectoryNotFound = 40400001
+	// responseCodeFolderAlreadyExist folder already exists
+	responseCodeFolderAlreadyExist = 40600002
+	// responseCodeUserNeedPermission user need permission
+	responseCodeUserNeedPermission = 40100017
+	// responseCodeAccountForbidden account forbidden
+	responseCodeAccountForbidden = 40100019
+	// responseCodeHasNoPermissionToDelete has no permission to delete
+	responseCodeHasNoPermissionToDelete = 40300011
+)
 
 func checkErrorCode(err error, code int) bool {
 	if ae, ok := err.(*upyun.Error); ok {
