@@ -94,14 +94,14 @@ func formatError(err error) error {
 	if ae, ok := err.(*upyun.Error); ok {
 		switch ae.Code {
 		case responseCodeFileOrDirectoryNotFound, responseCodeNotFoundMarkAsDeleted, responseCodeNotFoundBlockDeleted:
-			// 40400001: file or directory not found
-			// 40401004: not found, mark as deleted
-			// 40401005: not found, block deleted
+			// responseCodeFileOrDirectoryNotFound: 40400001, file or directory not found
+			// responseCodeNotFoundMarkAsDeleted:   40401004, not found, mark as deleted
+			// responseCodeNotFoundBlockDeleted:    40401005: not found, block deleted
 			return fmt.Errorf("%w: %v", services.ErrObjectNotExist, err)
 		case responseCodeUserNeedPermission, responseCodeAccountForbidden, responseCodeHasNoPermissionToDelete:
-			// 40100017: user need permission
-			// 40100019: account forbidden
-			// 40300011: has no permission to delete
+			// responseCodeUserNeedPermission:      40100017, user need permission
+			// responseCodeAccountForbidden:        40100019, account forbidden
+			// responseCodeHasNoPermissionToDelete: 40300011, has no permission to delete
 			return fmt.Errorf("%w: %v", services.ErrPermissionDenied, err)
 		default:
 			return fmt.Errorf("%w, %v", services.ErrUnexpected, err)
