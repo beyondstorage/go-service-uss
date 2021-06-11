@@ -2,7 +2,6 @@ package uss
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/upyun/go-sdk/v3/upyun"
@@ -92,30 +91,24 @@ func formatError(err error) error {
 		return err
 	}
 
-	fn := func(s string) bool {
-		return strings.Contains(err.Error(), `"code": `+s)
-	}
-
-	switch {
-	case !fn(""):
-		// If body is empty
-		switch {
-		case strings.Contains(err.Error(), "404"):
+	if ae, ok := err.(*upyun.Error); ok {
+		switch ae.Code {
+		case responseCodeFileOrDirectoryNotFound, responseCodeNotFoundMarkAsDeleted, responseCodeNotFoundBlockDeleted:
+			// 40400001: file or directory not found
+			// 40401004: not found, mark as deleted
+			// 40401005: not found, block deleted
 			return fmt.Errorf("%w: %v", services.ErrObjectNotExist, err)
+		case responseCodeUserNeedPermission, responseCodeAccountForbidden, responseCodeHasNoPermissionToDelete:
+			// 40100017: user need permission
+			// 40100019: account forbidden
+			// 40300011: has no permission to delete
+			return fmt.Errorf("%w: %v", services.ErrPermissionDenied, err)
 		default:
 			return fmt.Errorf("%w, %v", services.ErrUnexpected, err)
 		}
-	case fn(strconv.Itoa(responseCodeFileOrDirectoryNotFound)):
-		// 40400001:	file or directory not found
-		return fmt.Errorf("%w: %v", services.ErrObjectNotExist, err)
-	case fn(strconv.Itoa(responseCodeUserNeedPermission)), fn(strconv.Itoa(responseCodeAccountForbidden)), fn(strconv.Itoa(responseCodeHasNoPermissionToDelete)):
-		// 40100017: user need permission
-		// 40100019: account forbidden
-		// 40300011: has no permission to delete
-		return fmt.Errorf("%w: %v", services.ErrPermissionDenied, err)
-	default:
-		return fmt.Errorf("%w, %v", services.ErrUnexpected, err)
 	}
+
+	return fmt.Errorf("%w, %v", services.ErrUnexpected, err)
 }
 
 // getAbsPath will calculate object storage's abs path
@@ -180,6 +173,10 @@ func (s *Storage) newObject(stated bool) *typ.Object {
 const (
 	// responseCodeFileOrDirectoryNotFound file or directory not found
 	responseCodeFileOrDirectoryNotFound = 40400001
+	// responseCodeNotFoundMarkAsDeleted not found, mark as deleted
+	responseCodeNotFoundMarkAsDeleted = 40401004
+	// responseCodeNotFoundBlockDeleted not found, block deleted
+	responseCodeNotFoundBlockDeleted = 40401005
 	// responseCodeFolderAlreadyExist folder already exists
 	responseCodeFolderAlreadyExist = 40600002
 	// responseCodeUserNeedPermission user need permission
