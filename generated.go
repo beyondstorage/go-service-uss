@@ -21,15 +21,9 @@ var _ httpclient.Options
 // Type is the type for uss
 const Type = "uss"
 
-// Service available pairs.
-const (
-	// DefaultStoragePairs set default pairs for storager actions
-	pairDefaultStoragePairs = "uss_default_storage_pairs"
-	// StorageFeatures set storage features
-	pairStorageFeatures = "uss_storage_features"
-)
-
 // ObjectMetadata stores service metadata for object.
+//
+// Deprecated: Use ObjectSystemMetadata instead.
 type ObjectMetadata struct {
 }
 
@@ -37,6 +31,8 @@ type ObjectMetadata struct {
 //
 // - This function should not be called by service implementer.
 // - The returning ObjectMetadata is read only and should not be modified.
+//
+// Deprecated: Use GetObjectSystemMetadata instead.
 func GetObjectMetadata(o *Object) ObjectMetadata {
 	om, ok := o.GetServiceMetadata()
 	if ok {
@@ -48,8 +44,55 @@ func GetObjectMetadata(o *Object) ObjectMetadata {
 // setObjectMetadata will set ObjectMetadata into Object.
 //
 // - This function should only be called once, please make sure all data has been written before set.
+//
+// Deprecated: Use setObjectSystemMetadata instead.
 func setObjectMetadata(o *Object, om ObjectMetadata) {
 	o.SetServiceMetadata(om)
+}
+
+// ObjectSystemMetadata stores system metadata for object.
+type ObjectSystemMetadata struct {
+}
+
+// GetObjectSystemMetadata will get ObjectSystemMetadata from Object.
+//
+// - This function should not be called by service implementer.
+// - The returning ObjectServiceMetadata is read only and should not be modified.
+func GetObjectSystemMetadata(o *Object) ObjectSystemMetadata {
+	sm, ok := o.GetSystemMetadata()
+	if ok {
+		return sm.(ObjectSystemMetadata)
+	}
+	return ObjectSystemMetadata{}
+}
+
+// setObjectSystemMetadata will set ObjectSystemMetadata into Object.
+//
+// - This function should only be called once, please make sure all data has been written before set.
+func setObjectSystemMetadata(o *Object, sm ObjectSystemMetadata) {
+	o.SetSystemMetadata(sm)
+}
+
+// StorageSystemMetadata stores system metadata for storage meta.
+type StorageSystemMetadata struct {
+}
+
+// GetStorageSystemMetadata will get SystemMetadata from StorageMeta.
+//
+// - The returning StorageSystemMetadata is read only and should not be modified.
+func GetStorageSystemMetadata(s *StorageMeta) StorageSystemMetadata {
+	sm, ok := s.GetSystemMetadata()
+	if ok {
+		return sm.(StorageSystemMetadata)
+	}
+	return StorageSystemMetadata{}
+}
+
+// setStorageSystemMetadata will set SystemMetadata into StorageMeta.
+//
+// - This function should only be called once, please make sure all data has been written before set.
+func setStorageSystemMetadata(s *StorageMeta, sm StorageSystemMetadata) {
+	s.SetSystemMetadata(sm)
 }
 
 // WithDefaultStoragePairs will apply default_storage_pairs value to Options.
@@ -57,7 +100,7 @@ func setObjectMetadata(o *Object, om ObjectMetadata) {
 // DefaultStoragePairs set default pairs for storager actions
 func WithDefaultStoragePairs(v DefaultStoragePairs) Pair {
 	return Pair{
-		Key:   pairDefaultStoragePairs,
+		Key:   "default_storage_pairs",
 		Value: v,
 	}
 }
@@ -67,29 +110,62 @@ func WithDefaultStoragePairs(v DefaultStoragePairs) Pair {
 // StorageFeatures set storage features
 func WithStorageFeatures(v StorageFeatures) Pair {
 	return Pair{
-		Key:   pairStorageFeatures,
+		Key:   "storage_features",
 		Value: v,
 	}
 }
 
+var pairMap = map[string]string{
+	"content_md5":           "string",
+	"content_type":          "string",
+	"context":               "context.Context",
+	"continuation_token":    "string",
+	"credential":            "string",
+	"default_storage_pairs": "DefaultStoragePairs",
+	"endpoint":              "string",
+	"expire":                "int",
+	"http_client_options":   "*httpclient.Options",
+	"interceptor":           "Interceptor",
+	"io_callback":           "func([]byte)",
+	"list_mode":             "ListMode",
+	"location":              "string",
+	"multipart_id":          "string",
+	"name":                  "string",
+	"object_mode":           "ObjectMode",
+	"offset":                "int64",
+	"size":                  "int64",
+	"storage_features":      "StorageFeatures",
+	"work_dir":              "string",
+}
 var (
 	_ Direr    = &Storage{}
 	_ Storager = &Storage{}
 )
 
 type StorageFeatures struct {
-	LooseOperationAll       bool
-	LooseOperationCreate    bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationAll bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationCreate bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
 	LooseOperationCreateDir bool
-	LooseOperationDelete    bool
-	LooseOperationList      bool
-	LooseOperationMetadata  bool
-	LooseOperationRead      bool
-	LooseOperationStat      bool
-	LooseOperationWrite     bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationDelete bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationList bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationMetadata bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationRead bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationStat bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationWrite bool
 
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
 	VirtualOperationAll bool
 
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
 	VirtualPairAll bool
 }
 
@@ -135,7 +211,7 @@ func parsePairStorageNew(opts []Pair) (pairStorageNew, error) {
 			result.HasName = true
 			result.Name = v.Value.(string)
 		// Optional pairs
-		case pairDefaultStoragePairs:
+		case "default_storage_pairs":
 			if result.HasDefaultStoragePairs {
 				continue
 			}
@@ -147,7 +223,7 @@ func parsePairStorageNew(opts []Pair) (pairStorageNew, error) {
 			}
 			result.HasHTTPClientOptions = true
 			result.HTTPClientOptions = v.Value.(*httpclient.Options)
-		case pairStorageFeatures:
+		case "storage_features":
 			if result.HasStorageFeatures {
 				continue
 			}
@@ -197,9 +273,6 @@ func (s *Storage) parsePairStorageCreate(opts []Pair) (pairStorageCreate, error)
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "object_mode":
 			if result.HasObjectMode {
@@ -209,18 +282,8 @@ func (s *Storage) parsePairStorageCreate(opts []Pair) (pairStorageCreate, error)
 			result.ObjectMode = v.Value.(ObjectMode)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageCreate{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationCreate {
-			continue
-		}
-		return pairStorageCreate{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -240,23 +303,10 @@ func (s *Storage) parsePairStorageCreateDir(opts []Pair) (pairStorageCreateDir, 
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		default:
-			isUnsupportedPair = true
+			return pairStorageCreateDir{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationCreateDir {
-			continue
-		}
-		return pairStorageCreateDir{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -278,9 +328,6 @@ func (s *Storage) parsePairStorageDelete(opts []Pair) (pairStorageDelete, error)
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "object_mode":
 			if result.HasObjectMode {
@@ -290,18 +337,8 @@ func (s *Storage) parsePairStorageDelete(opts []Pair) (pairStorageDelete, error)
 			result.ObjectMode = v.Value.(ObjectMode)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageDelete{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationDelete {
-			continue
-		}
-		return pairStorageDelete{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -325,9 +362,6 @@ func (s *Storage) parsePairStorageList(opts []Pair) (pairStorageList, error) {
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "continuation_token":
 			if result.HasContinuationToken {
@@ -344,18 +378,8 @@ func (s *Storage) parsePairStorageList(opts []Pair) (pairStorageList, error) {
 			result.ListMode = v.Value.(ListMode)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageList{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationList {
-			continue
-		}
-		return pairStorageList{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -375,23 +399,10 @@ func (s *Storage) parsePairStorageMetadata(opts []Pair) (pairStorageMetadata, er
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		default:
-			isUnsupportedPair = true
+			return pairStorageMetadata{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationMetadata {
-			continue
-		}
-		return pairStorageMetadata{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -417,9 +428,6 @@ func (s *Storage) parsePairStorageRead(opts []Pair) (pairStorageRead, error) {
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "io_callback":
 			if result.HasIoCallback {
@@ -443,18 +451,8 @@ func (s *Storage) parsePairStorageRead(opts []Pair) (pairStorageRead, error) {
 			result.Size = v.Value.(int64)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageRead{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationRead {
-			continue
-		}
-		return pairStorageRead{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -476,9 +474,6 @@ func (s *Storage) parsePairStorageStat(opts []Pair) (pairStorageStat, error) {
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "object_mode":
 			if result.HasObjectMode {
@@ -488,18 +483,8 @@ func (s *Storage) parsePairStorageStat(opts []Pair) (pairStorageStat, error) {
 			result.ObjectMode = v.Value.(ObjectMode)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageStat{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationStat {
-			continue
-		}
-		return pairStorageStat{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -525,9 +510,6 @@ func (s *Storage) parsePairStorageWrite(opts []Pair) (pairStorageWrite, error) {
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "content_md5":
 			if result.HasContentMd5 {
@@ -551,18 +533,8 @@ func (s *Storage) parsePairStorageWrite(opts []Pair) (pairStorageWrite, error) {
 			result.IoCallback = v.Value.(func([]byte))
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageWrite{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationWrite {
-			continue
-		}
-		return pairStorageWrite{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -785,4 +757,5 @@ func (s *Storage) WriteWithContext(ctx context.Context, path string, r io.Reader
 
 func init() {
 	services.RegisterStorager(Type, NewStorager)
+	services.RegisterSchema(Type, pairMap)
 }

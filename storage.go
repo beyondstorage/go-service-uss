@@ -50,7 +50,7 @@ func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCre
 		return
 	}
 
-	o = s.newObject(true)
+	o = s.newObject(false)
 	o.Mode = ModeDir
 	o.ID = rp
 	o.Path = path
