@@ -24,6 +24,7 @@ type Storage struct {
 	features     StorageFeatures
 
 	typ.UnimplementedStorager
+	typ.UnimplementedDirer
 }
 
 // String implements Storager.String
@@ -90,30 +91,24 @@ func formatError(err error) error {
 		return err
 	}
 
-	fn := func(s string) bool {
-		return strings.Contains(err.Error(), `"code": `+s)
-	}
-
-	switch {
-	case !fn(""):
-		// If body is empty
-		switch {
-		case strings.Contains(err.Error(), "404"):
+	if ae, ok := err.(*upyun.Error); ok {
+		switch ae.Code {
+		case responseCodeFileOrDirectoryNotFound, responseCodeNotFoundMarkAsDeleted, responseCodeNotFoundBlockDeleted:
+			// responseCodeFileOrDirectoryNotFound: 40400001, file or directory not found
+			// responseCodeNotFoundMarkAsDeleted:   40401004, not found, mark as deleted
+			// responseCodeNotFoundBlockDeleted:    40401005: not found, block deleted
 			return fmt.Errorf("%w: %v", services.ErrObjectNotExist, err)
+		case responseCodeUserNeedPermission, responseCodeAccountForbidden, responseCodeHasNoPermissionToDelete:
+			// responseCodeUserNeedPermission:      40100017, user need permission
+			// responseCodeAccountForbidden:        40100019, account forbidden
+			// responseCodeHasNoPermissionToDelete: 40300011, has no permission to delete
+			return fmt.Errorf("%w: %v", services.ErrPermissionDenied, err)
 		default:
 			return fmt.Errorf("%w, %v", services.ErrUnexpected, err)
 		}
-	case fn("40400001"):
-		// 40400001:	file or directory not found
-		return fmt.Errorf("%w: %v", services.ErrObjectNotExist, err)
-	case fn("40100017"), fn("40100019"), fn("40300011"):
-		// 40100017: user need permission
-		// 40100019: account forbidden
-		// 40300011: has no permission to delete
-		return fmt.Errorf("%w: %v", services.ErrPermissionDenied, err)
-	default:
-		return fmt.Errorf("%w, %v", services.ErrUnexpected, err)
 	}
+
+	return fmt.Errorf("%w, %v", services.ErrUnexpected, err)
 }
 
 // getAbsPath will calculate object storage's abs path
@@ -145,7 +140,6 @@ func (s *Storage) formatFileObject(v *upyun.FileInfo) (o *typ.Object, err error)
 	o = s.newObject(true)
 	o.ID = v.Name
 	o.Path = s.getRelPath(v.Name)
-	o.Mode |= typ.ModeRead
 
 	o.SetContentLength(v.Size)
 	o.SetLastModified(v.Time)
@@ -160,10 +154,43 @@ func (s *Storage) formatFileObject(v *upyun.FileInfo) (o *typ.Object, err error)
 	if v.ContentType != "" {
 		o.SetContentType(v.ContentType)
 	}
+	if v.IsDir {
+		o.Mode |= typ.ModeDir
+	} else {
+		o.Mode |= typ.ModeRead
+	}
 
 	return o, nil
 }
 
 func (s *Storage) newObject(stated bool) *typ.Object {
 	return typ.NewObject(s, stated)
+}
+
+// uss service response error code
+//
+// ref: http://docs.upyun.com/api/errno/
+const (
+	// responseCodeFileOrDirectoryNotFound file or directory not found
+	responseCodeFileOrDirectoryNotFound = 40400001
+	// responseCodeNotFoundMarkAsDeleted not found, mark as deleted
+	responseCodeNotFoundMarkAsDeleted = 40401004
+	// responseCodeNotFoundBlockDeleted not found, block deleted
+	responseCodeNotFoundBlockDeleted = 40401005
+	// responseCodeFolderAlreadyExist folder already exists
+	responseCodeFolderAlreadyExist = 40600002
+	// responseCodeUserNeedPermission user need permission
+	responseCodeUserNeedPermission = 40100017
+	// responseCodeAccountForbidden account forbidden
+	responseCodeAccountForbidden = 40100019
+	// responseCodeHasNoPermissionToDelete has no permission to delete
+	responseCodeHasNoPermissionToDelete = 40300011
+)
+
+func checkErrorCode(err error, code int) bool {
+	if ae, ok := err.(*upyun.Error); ok {
+		return ae.Code == code
+	}
+
+	return false
 }
