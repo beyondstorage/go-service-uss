@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v2.2.0] - 2021-07-21
+
+### Added
+
+- ci: Add gofmt action (#14)
+- ci: Add diff check action (#17)
+- ci: Add dependabot auto build support (#18)
+
+### Fixed
+
+- ci: Fix auto-build not work correctly
+- storage: Fix list behavior (#21)
+
 ## [v2.1.0] - 2021-06-29
 
 ### Added
@@ -33,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Implement uss services.
 
+[v2.2.0]: https://github.com/beyondstorage/go-service-uss/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/beyondstorage/go-service-uss/compare/v2.0.0...v2.1.0
 [v2.0.0]: https://github.com/beyondstorage/go-service-uss/compare/v1.0.0...v2.0.0
  
